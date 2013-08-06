@@ -32,6 +32,9 @@
 #include "../head.h"
 #include "guihead.h"
 
+BOOL WINAPI AttachConsole(DWORD dwProcessId);
+BOOL WINAPI FreeConsole(void);
+
 extern FILE* hLog;
 extern PROCESS_INFORMATION pi;
 
@@ -47,6 +50,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR     lpCmdLine,
                      int       nCmdShow) {
+	BOOL bGotConsole;
 	int result = prepare(lpCmdLine);
 	if (result == ERROR_ALREADY_EXISTS) {
 		HWND handle = getInstanceWindow();
@@ -64,6 +68,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			&& strstr(lpCmdLine, "--l4j-no-splash") == NULL;
 	stayAlive = loadBool(GUI_HEADER_STAYS_ALIVE)
 			&& strstr(lpCmdLine, "--l4j-dont-wait") == NULL;
+	bGotConsole = AttachConsole(-1); // try to attach to the console of the parent process
+	stayAlive = bGotConsole || stayAlive;
 	if (splash || stayAlive) {
 		hWnd = CreateWindowEx(WS_EX_TOOLWINDOW, "STATIC", "",
 				WS_POPUP | SS_BITMAP,
@@ -120,6 +126,9 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	}
 	debug("Exit code:\t%d\n", dwExitCode);
 	closeHandles();
+	if (bGotConsole) {
+		FreeConsole();
+	}
 	return dwExitCode;
 }
 
